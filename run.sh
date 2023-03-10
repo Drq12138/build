@@ -1,0 +1,13 @@
+python main.py \
+--name batch_128_cos \
+--arch resnet18 \
+--datasets CIFAR100 \
+--train_batch_size 128 \
+--epochs 200 \
+--lr 0.1 \
+--momentum 0.9 \
+--weight_decay 1e-4 \
+--lr_schedule cos \
+--schedule 80 120 160 \
+--gamma 0.1 \
+--gpu 2
