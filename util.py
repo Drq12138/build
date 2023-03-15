@@ -43,3 +43,7 @@ def set_seed(seed=1):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
+
+
+def full_fill_name(epoch, length, arch='resnet18'):
+    return 'save_net_' + arch + '_' + str(epoch).zfill(length) + '.pt'

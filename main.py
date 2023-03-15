@@ -6,7 +6,7 @@ from data import get_dataset
 from model import get_model
 import torchvision.transforms as transforms
 import torch.nn as nn
-from util import AverageMeter, accuracy, set_seed
+from util import AverageMeter, accuracy, set_seed, full_fill_name
 import os
 from progress.bar import Bar as Bar
 from torchvision.models import resnet18
@@ -80,10 +80,12 @@ def main():
     parser.add_argument('--lr_schedule', type=str, default='step', choices=['step', 'cos'])
     parser.add_argument('--schedule', type=int, nargs='+', default=[150, 225])
     parser.add_argument('--gamma', type=float, default=0.1)
+    parser.add_argument('--T_max', type=int, default=40)
 
     # save logs
     parser.add_argument('--save_dir', default='./../backup_check/task_cifar100/')
     parser.add_argument('--name', default='test')
+    parser.add_argument('--save_path', action='store_true')
 
     # other setup
     parser.add_argument('--gpu', default='0', type=str)
@@ -113,7 +115,7 @@ def main():
     if args.lr_schedule == 'step':
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.schedule, gamma=args.gamma)
     elif args.lr_schedule == 'cos':
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=40, eta_min=4e-4)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.T_max, eta_min=4e-4)
 
     best_acc = 0
     best_epoch = 0
@@ -128,10 +130,20 @@ def main():
                         filename=os.path.join(save_dir, 'test.log'),
                         filemode='a')
     logging.info(args)
+    if args.save_path:
+        path_file = os.path.join(save_dir, 'paths')
+        if not os.path.isdir(path_file):
+            os.mkdir(path_file)
+        torch.save({'epoch': 0, 'state_dict': model.state_dict()},
+                   os.path.join(path_file, full_fill_name(0, len(str(args.epochs)), args.arch)))
 
-    for epoch in range(200):
+    for epoch in range(args.epochs):
         print('epoch:[{}/200] lr: {}'.format(epoch + 1, scheduler.get_last_lr()[0]))
         train_losses, train_top1, train_top5 = train(model, train_loader, criterion, optimizer, logger)
+        if args.save_path:
+            torch.save({'epoch': epoch + 1, 'state_dict': model.state_dict()},
+                       os.path.join(path_file, full_fill_name(epoch + 1, len(str(args.epochs)), args.arch)))
+
         logger.add_scalar('train_loss', train_losses.avg, epoch)
         logger.add_scalar('train_top1', train_top1.avg, epoch)
         logger.add_scalar('train_top5', train_top5.avg, epoch)
